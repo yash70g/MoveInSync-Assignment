@@ -12,6 +12,10 @@ const featureCards = [
   {
     title: "View analytics",
     description: "Track success rate, failures, and lifecycle telemetry by cohort."
+  },
+  {
+    title: "Track Live Devices",
+    description: "Track devices in real-time"
   }
 ];
 
