@@ -1,0 +1,17 @@
+{
+  "name": "movein-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:admin": "npm run dev -w @movein/admin-dashboard",
+    "dev:device": "npm run dev -w @movein/device-web-agent",
+    "build": "npm run build -w @movein/admin-dashboard && npm run build -w @movein/device-web-agent"
+  },
+  "engines": {
+    "node": ">=20.10.0",
+    "npm": ">=10.0.0"
+  }
+}
