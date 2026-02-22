@@ -49,7 +49,13 @@ export default function App() {
   const [version, setVersion] = useState("0.0.0");
 
   useEffect(() => {
-    setVersion(getLocalDeviceVersion());
+    setVersion(getLocalDeviceVersion());    
+    // Send heartbeat on mount
+    sendHeartbeat().then((result) => {
+      if (result.ok) {
+        setLastHeartbeat(new Date().toLocaleTimeString());
+      }
+    });
   }, []);
 
   const handleHeartbeat = async () => {
@@ -57,9 +63,9 @@ export default function App() {
     const result = await sendHeartbeat();
     if (result.ok) {
       setLastHeartbeat(new Date().toLocaleTimeString());
-      setStatus("✅ Sent");
+      setStatus("Sent");
     } else {
-      setStatus(`❌ ${result.error}`);
+      setStatus(`${result.error}`);
     }
     setTimeout(() => setStatus(""), 3000);
   };
