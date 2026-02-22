@@ -8,6 +8,8 @@
     "start": "node src/index.js"
   },
   "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "mongoose": "^8.10.1"
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
@@ -12,7 +12,12 @@ function getOrCreateDeviceId() {
   return id;
 }
 
+function getLocalDeviceVersion() {
+  return localStorage.getItem("deviceVersion") || "0.0.0";
+}
+
 async function sendHeartbeat() {
+  const version = getLocalDeviceVersion();
   try {
     const res = await fetch(`${API_BASE}/api/heartbeat`, {
       method: "POST",
@@ -21,6 +26,7 @@ async function sendHeartbeat() {
         event: "device_heartbeat",
         deviceId: getOrCreateDeviceId(),
         ts: new Date().toISOString(),
+        version
       }),
       keepalive: true,
     });
@@ -40,6 +46,11 @@ const capabilities = [
 export default function App() {
   const [status, setStatus] = useState("");
   const [lastHeartbeat, setLastHeartbeat] = useState("Not sent");
+  const [version, setVersion] = useState("0.0.0");
+
+  useEffect(() => {
+    setVersion(getLocalDeviceVersion());
+  }, []);
 
   const handleHeartbeat = async () => {
     setStatus("Sending...");
@@ -73,7 +84,7 @@ export default function App() {
         <h2>Current State</h2>
         <div className="state-row"><span>Status:</span><strong>{status || "Idle"}</strong></div>
         <div className="state-row"><span>Last Heartbeat:</span><strong>{lastHeartbeat}</strong></div>
-        <div className="state-row"><span>Current Version:</span><strong>0.0.0-dev</strong></div>
+        <div className="state-row"><span>Current Version:</span><strong>{version}</strong></div>
       </section>
 
       <section className="panel">
