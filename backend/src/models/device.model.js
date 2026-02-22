@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const DeviceSchema = new mongoose.Schema(
   {
-    deviceId: { type: String, required: true }, //IMEI
+    deviceId: { type: String, required: true, unique: true }, //IMEI
     platform: { type: String, required: true }, // e.g., device os
     currentVersion: { type: String, default: "0.0.0" },
     status: { type: String, default: "active" },
