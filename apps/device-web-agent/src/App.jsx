@@ -26,7 +26,9 @@ async function sendHeartbeat() {
         event: "device_heartbeat",
         deviceId: getOrCreateDeviceId(),
         ts: new Date().toISOString(),
-        version
+        version,
+        platform: "web",
+        region: "Bangalore"
       }),
       keepalive: true,
     });
