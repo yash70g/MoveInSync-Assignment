@@ -61,3 +61,78 @@ body {
   border-radius: 10px;
   padding: 14px;
 }
+
+.query-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.form-group {
+  flex: 1;
+  min-width: 140px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+button {
+  padding: 6px 14px;
+  border: 1px solid var(--panel-border);
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #6b7280;
+}
+
+.error {
+  padding: 10px;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.results {
+  margin-top: 16px;
+}
+
+.results h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+}
+
+.device-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.device-table th {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--panel-border);
+  font-weight: 600;
+}
+
+.device-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
