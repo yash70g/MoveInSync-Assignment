@@ -23,14 +23,53 @@ async function start(){
       }
     });
 
+    app.post("/api/devices/register", async(req, res)=> {
+      try {
+        const { deviceId, platform, currentVersion, region, metadata } = req.body || {};
+        
+        if (!deviceId || !platform) {
+          return res.status(400).json({ 
+            ok: false, 
+            error: "deviceId and platform are required" 
+          });
+        }
+
+        const device = await models.registerOrUpdateDevice(deviceId, {
+          deviceId,
+          platform,
+          currentVersion: currentVersion || "0.0.0",
+          status: "active",
+          region: region || "Bangalore",
+          metadata: metadata || {}
+        });
+
+        return res.json({
+          ok: true,
+          device
+        });
+      } catch(err){
+        console.error("Device registration failed:", err.message);
+        return res.status(500).json({ ok: false, error: err.message });
+      }
+    });
+
     app.post("/api/heartbeat", async(req, res)=> {
-      const { event, deviceId, ts, version } = req.body || {};
+      const { event, deviceId, ts, version, platform, region } = req.body || {};
       if(!event || !deviceId || !ts){
         return res.status(400).json({ ok: false, error: "Missing fields" });
       }
       try {
+        // Auto-register/update device on every heartbeat
+        await models.registerOrUpdateDevice(deviceId, {
+          deviceId,
+          platform: platform || "unknown",
+          currentVersion: version || "0.0.0",
+          status: "active",
+          region: region || "Bangalore"
+        });
+        
+        // Record heartbeat event
         await models.createHeartbeat({ event, deviceId, ts: new Date(ts), version });
-        await models.updateDeviceHeartbeat(deviceId);
       } catch(err){
         console.error("heartbeat store failed:", err.message);
       }
@@ -66,73 +105,14 @@ async function start(){
           });
         }
         const devices = await models.getDevicesByRegionAndVersion(region, version);
-        const count = await models.getDeviceCountByRegionAndVersion(region, version);
         return res.json({
           ok: true,
           query: { region, version },
-          count,
+          count: devices.length,
           devices
         });
       } catch(err){
         console.error("Failed to query devices:", err.message);
-        return res.status(500).json({ ok: false, error: err.message });
-      }
-    });
-
-    app.get("/api/devices/check-live", async(req, res)=> {
-      try {
-        const {region} = req.query;
-        const filters = {};
-        if(region)filters.region = region;
-        const devices = await models.getAllDevices(filters);
-        if (devices.length === 0) {
-          return res.json({
-            ok: true,
-            region: region || "all",
-            totalDevices: 0,
-            liveDevices: 0,
-            livePercentage: "0",
-            devices: []
-          });
-        }
-        const latestHeartbeat = devices
-          .filter(d => d.lastHeartbeatAt)
-          .sort((a, b) => new Date(b.lastHeartbeatAt) - new Date(a.lastHeartbeatAt))[0];
-        if (!latestHeartbeat) {
-          return res.json({
-            ok: true,
-            region: region || "all",
-            totalDevices: devices.length,
-            liveDevices: 0,
-            livePercentage: "0",
-            devices: []
-          });
-        }
-
-        const latestDate = new Date(latestHeartbeat.lastHeartbeatAt);
-        const dateStr = latestDate.toISOString().split('T')[0];
-        const startOfDay = new Date(latestDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(latestDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        const liveDevices = devices.filter(device => {
-          return device.lastHeartbeatAt && 
-                 new Date(device.lastHeartbeatAt) >= startOfDay && 
-                 new Date(device.lastHeartbeatAt) <= endOfDay;
-        });
-        
-        return res.json({
-          ok: true,
-          region: region || "all",
-          date: dateStr,
-          totalDevices: devices.length,
-          liveDevices: liveDevices.length,
-          livePercentage: devices.length > 0 ? ((liveDevices.length / devices.length) * 100).toFixed(2) : "0",
-          devices: liveDevices
-        });
-      } catch(err){
-        console.error("Failed to check live devices:", err.message);
         return res.status(500).json({ ok: false, error: err.message });
       }
     });
