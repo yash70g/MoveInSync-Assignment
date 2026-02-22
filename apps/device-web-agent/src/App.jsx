@@ -1,4 +1,34 @@
-import React from "react";
+import React, { useState } from "react";
+
+const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+
+function getOrCreateDeviceId() {
+  const key = "deviceId";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
+async function sendHeartbeat() {
+  try {
+    const res = await fetch(`${API_BASE}/api/heartbeat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "device_heartbeat",
+        deviceId: getOrCreateDeviceId(),
+        ts: new Date().toISOString(),
+      }),
+      keepalive: true,
+    });
+    return await res.json();
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
 
 const capabilities = [
   "Send heartbeat",
@@ -8,6 +38,21 @@ const capabilities = [
 ];
 
 export default function App() {
+  const [status, setStatus] = useState("");
+  const [lastHeartbeat, setLastHeartbeat] = useState("Not sent");
+
+  const handleHeartbeat = async () => {
+    setStatus("Sending...");
+    const result = await sendHeartbeat();
+    if (result.ok) {
+      setLastHeartbeat(new Date().toLocaleTimeString());
+      setStatus("✅ Sent");
+    } else {
+      setStatus(`❌ ${result.error}`);
+    }
+    setTimeout(() => setStatus(""), 3000);
+  };
+
   return (
     <main className="page">
       <header className="hero">
@@ -26,9 +71,13 @@ export default function App() {
 
       <section className="panel">
         <h2>Current State</h2>
-        <div className="state-row"><span>Status:</span><strong>Idle</strong></div>
-        <div className="state-row"><span>Last Heartbeat:</span><strong>Not sent</strong></div>
+        <div className="state-row"><span>Status:</span><strong>{status || "Idle"}</strong></div>
+        <div className="state-row"><span>Last Heartbeat:</span><strong>{lastHeartbeat}</strong></div>
         <div className="state-row"><span>Current Version:</span><strong>0.0.0-dev</strong></div>
+      </section>
+
+      <section className="panel">
+        <button onClick={handleHeartbeat}>Send Heartbeat</button>
       </section>
     </main>
   );
