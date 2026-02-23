@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import deviceRoutes from './routes/deviceRoutes.js';
+import versionRoutes from './routes/versionRoutes.js';
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 connectDB();
 
 app.use('/api/devices', deviceRoutes);
+app.use('/api/versions', versionRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'MDM Server is running' });

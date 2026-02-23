@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { sendHeartbeat } from './services/api';
 import { getDeviceInfo } from './utils/deviceUtils';
-import './App.css';
+import AdminDashboard from './components/AdminDashboard';
+import VersionManagement from './components/VersionManagement';
 
-function App() {
+function ClientView() {
   const [status, setStatus] = useState('Initializing...');
   const [deviceInfo, setDeviceInfo] = useState(null);
   const [heartbeatCount, setHeartbeatCount] = useState(0);
@@ -16,17 +18,16 @@ function App() {
         setDeviceInfo(info);
         const response = await sendHeartbeat(info);
         if (response.success) {
-          setStatus(`${response.message}`);
+          setStatus(response.message);
           setHeartbeatCount(prev => prev + 1);
         }
       } catch (error) {
         setStatus('Failed to send heartbeat. Is the server running?');
-        console.error(error);
       }
     };
     sendInitialHeartbeat();
-  }, []); 
-  
+  }, []);
+
   return (
     <div className="app">
       <div className="container">
@@ -39,7 +40,7 @@ function App() {
           <div className="heartbeat-count">
             <strong>Heartbeats Sent:</strong> {heartbeatCount}
           </div>
-          
+
           {deviceInfo && (
             <div className="device-info">
               <h3>Device Information</h3>
@@ -64,12 +65,26 @@ function App() {
             </div>
           )}
         </div>
-        
+
         <div className="info-box">
-          <p><strong>Note:</strong> A heartbeat is automatically sent when the app mounts. Refresh the page to send another heartbeat.</p>
+          <p><strong>Note:</strong> Refresh to send another heartbeat.</p>
+          <Link to="/admin/versions" className="admin-link">Go to Admin Dashboard</Link>
         </div>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<ClientView />} />
+        <Route path="/admin" element={<AdminDashboard />}>
+          <Route path="versions" element={<VersionManagement />} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
 
