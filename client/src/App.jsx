@@ -196,9 +196,9 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<ClientView />} />
-        <Route path="/admin" element={<AdminDashboard />}>,
-          <Route path="versions" element={<VersionManagement />} />,
-          <Route path="push-update" element={<PushUpdate />} />,
+        <Route path="/admin" element={<AdminDashboard />}>
+          <Route path="versions" element={<VersionManagement />} />
+          <Route path="push-update" element={<PushUpdate />} />
           <Route path="active-updates" element={<LiveUpdatesList />} />
           <Route path="analytics" element={<Analytics />} />
         </Route>
