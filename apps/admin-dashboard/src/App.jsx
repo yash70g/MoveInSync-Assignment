@@ -19,40 +19,110 @@ const featureCards = [
   }
 ];
 
+function VersionManagement() {
+  const [appId, setAppId] = useState("device-web-agent");
+  const [platform, setPlatform] = useState("Android");
+  const [data, setData] = useState({ version: null, devices: [], count: 0 });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchStatus = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [vRes, dRes] = await Promise.all([
+        fetch(`http://localhost:3000/api/versions/latest?appId=${appId}&platform=${platform}`),
+        fetch(`http://localhost:3000/api/devices/needs-update?appId=${appId}&platform=${platform}`)
+      ]);
+      const [vData, dData] = await Promise.all([vRes.json(), dRes.json()]);
+      setData({
+        version: vData.ok ? vData.version : null,
+        devices: dData.ok ? dData.devices || [] : [],
+        count: dData.ok ? dData.devicesNeedingUpdate : 0
+      });
+      if (!vData.ok) setError(vData.error);
+    } catch(err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (appId && platform) fetchStatus();
+  }, [appId, platform]);
+
+  return (
+    <section className="panel">
+      <h2>📱 Version Management</h2>
+      <div className="form-group">
+        <label>App ID:</label>
+        <input value={appId} onChange={(e) => setAppId(e.target.value)} />
+      </div>
+      <div className="form-group">
+        <label>Platform:</label>
+        <select value={platform} onChange={(e) => setPlatform(e.target.value)}>
+          <option>Android</option>
+          <option>iOS</option>
+          <option>Web</option>
+        </select>
+      </div>
+      <button onClick={fetchStatus} disabled={loading}>{loading ? "Loading..." : "Refresh"}</button>
+
+      {error && <div className="error">{error}</div>}
+      {data.version && (
+        <div className="version-card">
+          <h3>✅ Latest: {data.version.versionName}</h3>
+          <p><strong>Code:</strong> {data.version.versionCode}</p>
+        </div>
+      )}
+      {data.count > 0 && (
+        <div className="alert-card">
+          <h3>⚠️ {data.count} Device(s) Need Update</h3>
+          <table className="device-table">
+            <thead>
+              <tr><th>Device ID</th><th>Version</th><th>Region</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {data.devices.map((d) => (
+                <tr key={d._id}><td>{d.deviceId}</td><td>{d.currentVersion}</td><td>{d.region}</td><td><span className="badge-warn">Pending</span></td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {data.count === 0 && data.version && <div className="success-card">✅ All up-to-date!</div>}
+    </section>
+  );
+}
+
 function DeviceQuery() {
   const [region, setRegion] = useState("");
   const [version, setVersion] = useState("");
-  const [devices, setDevices] = useState([]);
-  const [count, setCount] = useState(0);
+  const [data, setData] = useState({ devices: [], count: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleQuery = async (e) => {
     e.preventDefault();
     if (!region && !version) {
-      setError("Please enter region or version");
+      setError("Provide region or version");
       return;
     }
 
     setLoading(true);
     setError(null);
-    
     try {
-      const params = new URLSearchParams();
-      if (region) params.append("region", region);
-      if (version) params.append("version", version);
-
-      const response = await fetch(`http://localhost:3000/api/devices/query?${params}`);
-      const data = await response.json();
-
-      if (data.ok) {
-        setDevices(data.devices || []);
-        setCount(data.count);
+      const params = new URLSearchParams({ ...(region && { region }), ...(version && { version }) });
+      const res = await fetch(`http://localhost:3000/api/devices/query?${params}`);
+      const result = await res.json();
+      if (result.ok) {
+        setData({ devices: result.devices || [], count: result.count });
       } else {
-        setError(data.error || "Failed to fetch devices");
+        setError(result.error);
       }
     } catch (err) {
-      setError(`Error: ${err.message}`);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -60,67 +130,29 @@ function DeviceQuery() {
 
   return (
     <section className="panel">
-      <h2>Device Query</h2>
-      <form onSubmit={handleQuery} className="query-form">
-        <div className="form-group">
-          <input
-            type="text"
-            placeholder="Region (e.g., Bangalore)"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-          />
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            placeholder="Version (e.g., 4.2)"
-            value={version}
-            onChange={(e) => setVersion(e.target.value)}
-          />
-        </div>
-        <button type="submit" disabled={loading}>
-          {loading ? "Loading..." : "Query Devices"}
-        </button>
-        {devices.length > 0 && (
-          <button 
-            type="button" 
-            onClick={handleQuery}
-            disabled={loading}
-            className="btn-secondary"
-          >
-            Refresh
-          </button>
-        )}
+      <h2>🔍 Device Query</h2>
+      <form onSubmit={handleQuery}>
+        <input placeholder="Region" value={region} onChange={(e) => setRegion(e.target.value)} />
+        <input placeholder="Version" value={version} onChange={(e) => setVersion(e.target.value)} />
+        <button type="submit" disabled={loading}>{loading ? "Loading..." : "Query"}</button>
       </form>
 
       {error && <div className="error">{error}</div>}
-
-      {devices.length > 0 && (
+      {data.devices.length > 0 && (
         <div className="results">
-          <h3>Results: {count} device(s) found</h3>
+          <h3>📊 {data.count} Device(s) Found</h3>
           <table className="device-table">
             <thead>
-              <tr>
-                <th>Device ID</th>
-                <th>Version</th>
-                <th>Platform</th>
-                <th>Region</th>
-                <th>Last Heartbeat</th>
-              </tr>
+              <tr><th>ID</th><th>Version</th><th>Platform</th><th>Region</th><th>Last Heartbeat</th></tr>
             </thead>
             <tbody>
-              {devices.map((device) => (
-                <tr key={device._id || device.deviceId}>
-                  <td>{device.deviceId}</td>
-                  <td>{device.currentVersion}</td>
-                  <td>{device.platform}</td>
-                  <td>{device.region}</td>
-                  <td>
-                    {device.lastHeartbeatAt 
-                      ? new Date(device.lastHeartbeatAt).toLocaleString()
-                      : "Never"
-                    }
-                  </td>
+              {data.devices.map((d) => (
+                <tr key={d._id || d.deviceId}>
+                  <td>{d.deviceId}</td>
+                  <td>{d.currentVersion}</td>
+                  <td>{d.platform}</td>
+                  <td>{d.region}</td>
+                  <td>{d.lastHeartbeatAt ? new Date(d.lastHeartbeatAt).toLocaleString() : "Never"}</td>
                 </tr>
               ))}
             </tbody>
@@ -150,7 +182,7 @@ export default function App() {
           ))}
         </div>
       </section>
-
+      <VersionManagement />
       <DeviceQuery />
     </main>
   );
