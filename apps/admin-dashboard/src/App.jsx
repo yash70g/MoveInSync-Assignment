@@ -150,79 +150,6 @@ function UpdateTimeline() {
   );
 }
 
-function ApprovalWorkflow() {
-  const [updateId, setUpdateId] = useState("");
-  const [updates, setUpdates] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(null);
-
-  const fetchPendingUpdates = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`http://localhost:3000/api/updates/${updateId}/progress`);
-      const d = await res.json();
-      if (d.ok) setUpdates([d]);
-    } catch (err) { console.error(err); }
-    setLoading(false);
-  };
-
-  const approveUpdate = async (id) => {
-    try {
-      const res = await fetch(`http://localhost:3000/api/updates/${id}/approve`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ approverAdminId: "admin" })
-      });
-      const d = await res.json();
-      setMessage(d.ok ? "✓ Update approved" : "✗ Approval failed");
-    } catch (err) { setMessage(err.message); }
-  };
-
-  const rejectUpdate = async (id) => {
-    try {
-      const res = await fetch(`http://localhost:3000/api/updates/${id}/reject`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ approverAdminId: "admin" })
-      });
-      const d = await res.json();
-      setMessage(d.ok ? "✓ Update rejected" : "✗ Rejection failed");
-    } catch (err) { setMessage(err.message); }
-  };
-
-  return (
-    <section className="panel">
-      <h2>👥 Approval Workflow</h2>
-      <p>Only authorized roles can approve critical updates. Maintains audit trail.</p>
-      <div style={{display: 'flex', gap: '10px'}}>
-        <input 
-          placeholder="Update ID" 
-          value={updateId} 
-          onChange={e => setUpdateId(e.target.value)} 
-          style={{flex: 1}}
-        />
-        <button onClick={fetchPendingUpdates} disabled={loading || !updateId}>{loading ? "Loading..." : "Check Status"}</button>
-      </div>
-      {message && <div className={message.includes("✓") ? "success-card" : "error"}>{message}</div>}
-      {updates.length > 0 && (
-        <div className="updates-list">
-          {updates.map((upd, idx) => (
-            <div key={idx} className="update-item">
-              <p>Status: {upd.progress?.completed} of {upd.progress?.total} devices updated</p>
-              <p>Success Rate: <strong>{upd.progress?.successRate}%</strong></p>
-              <p>Failure Rate: <strong>{upd.progress?.failureRate}%</strong></p>
-              <div style={{display: 'flex', gap: '10px'}}>
-                <button onClick={() => approveUpdate(updateId)} className="btn-success">✓ Approve</button>
-                <button onClick={() => rejectUpdate(updateId)} className="btn-error">✗ Reject</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 function DeviceQuery() {
   const [region, setRegion] = useState("");
   const [version, setVersion] = useState("");
@@ -357,7 +284,6 @@ export default function App() {
       
       <DashboardMonitor />
       <UpdateTimeline />
-      <ApprovalWorkflow />
       <DeviceQuery />
     </main>
   );

@@ -140,7 +140,6 @@ async function getAuditEvents(entityType, entityId, limit = 50) {
   return AuditEvent.find(filter).sort({ occurredAt: -1 }).limit(limit).lean();
 }
 
-// Update State Management
 async function createUpdateState(updateData) {
   const updateId = `upd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   return UpdateState.create({
@@ -208,34 +207,6 @@ async function recordUpdateFailure(updateId, failureStage, failureReason) {
   );
 }
 
-async function approveUpdate(updateId, approverAdminId) {
-  return UpdateState.findOneAndUpdate(
-    { updateId },
-    {
-      $set: {
-        approvalStatus: 'approved',
-        approvedBy: approverAdminId,
-        approvedAt: new Date()
-      }
-    },
-    { new: true }
-  );
-}
-
-async function rejectUpdate(updateId, approverAdminId) {
-  return UpdateState.findOneAndUpdate(
-    { updateId },
-    {
-      $set: {
-        approvalStatus: 'rejected',
-        approvedBy: approverAdminId,
-        approvedAt: new Date()
-      }
-    },
-    { new: true }
-  );
-}
-
 async function getRolloutProgress(updateId) {
   const updates = await UpdateState.find({ updateId }).lean();
   if (updates.length === 0) return null;
@@ -278,7 +249,5 @@ module.exports = {
   getDeviceUpdates,
   updateStateTransition,
   recordUpdateFailure,
-  approveUpdate,
-  rejectUpdate,
   getRolloutProgress
 };

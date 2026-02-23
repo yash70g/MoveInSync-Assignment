@@ -337,9 +337,6 @@ async function start(){
       }
     });
 
-    // ============ UPDATE WORKFLOW ENDPOINTS ============
-
-    // Admin: Schedule an update for devices
     app.post("/api/updates/schedule", async(req, res)=> {
       try {
         const { deviceIds, targetVersionCode, targetVersionName, scheduledBy, requiresApproval } = req.body;
@@ -377,56 +374,6 @@ async function start(){
       } catch(err) {
         console.error("Update schedule failed:", err.message);
         return res.status(500).json({ ok: false, error: "schedule failed" });
-      }
-    });
-
-    // Admin: Approve pending update
-    app.post("/api/updates/:updateId/approve", async(req, res)=> {
-      try {
-        const { updateId } = req.params;
-        const { approverAdminId } = req.body;
-        
-        const update = await models.approveUpdate(updateId, approverAdminId || "admin");
-        if (!update) {
-          return res.status(404).json({ ok: false, error: "update not found" });
-        }
-
-        await models.createAuditEvent({
-          entityType: "update",
-          entityId: updateId,
-          action: "approve_update",
-          actorId: approverAdminId || "admin",
-          payload: { deviceId: update.deviceId, targetVersion: update.targetVersionName }
-        });
-
-        return res.json({ ok: true, update });
-      } catch(err) {
-        return res.status(500).json({ ok: false, error: "approval failed" });
-      }
-    });
-
-    // Admin: Reject pending update
-    app.post("/api/updates/:updateId/reject", async(req, res)=> {
-      try {
-        const { updateId } = req.params;
-        const { approverAdminId } = req.body;
-        
-        const update = await models.rejectUpdate(updateId, approverAdminId || "admin");
-        if (!update) {
-          return res.status(404).json({ ok: false, error: "update not found" });
-        }
-
-        await models.createAuditEvent({
-          entityType: "update",
-          entityId: updateId,
-          action: "reject_update",
-          actorId: approverAdminId || "admin",
-          payload: { deviceId: update.deviceId, targetVersion: update.targetVersionName }
-        });
-
-        return res.json({ ok: true, update });
-      } catch(err) {
-        return res.status(500).json({ ok: false, error: "rejection failed" });
       }
     });
 
@@ -669,24 +616,17 @@ async function start(){
         return res.status(500).json({ ok: false, error: "fetch failed" });
       }
     });
-
-    // Get real-time monitoring dashboard data
     app.get("/api/dashboard/updates", async(req, res)=> {
       try {
         const { region, platform } = req.query;
-        
-        // Get all devices matching filters
         const filters = {};
         if (region) filters.region = region;
         if (platform) filters.platform = platform;
         
         const devices = await models.getAllDevices(filters);
         const deviceIds = devices.map(d => d.deviceId);
-        
-        // Get all update states for these devices
         const updateStates = await models.UpdateState.find({ deviceId: { $in: deviceIds } }).lean();
-        
-        // Calculate statistics
+  
         const stats = {
           totalDevices: devices.length,
           updatesScheduled: updateStates.length,
