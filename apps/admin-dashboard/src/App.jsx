@@ -77,7 +77,7 @@ function DashboardMonitor() {
           </div>
 
           <div className="region-section">
-            <h3>Region-wise Adoption</h3>
+            <h3>🌍 Region-wise Adoption</h3>
             <table>
               <thead><tr><th>Region</th><th>Total</th><th>Updated</th><th>Progress</th></tr></thead>
               <tbody>
