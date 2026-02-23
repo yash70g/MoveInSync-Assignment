@@ -75,21 +75,6 @@ function DashboardMonitor() {
               </tbody>
             </table>
           </div>
-
-          <div className="region-section">
-            <h3>Region-wise Adoption</h3>
-            <table>
-              <thead><tr><th>Region</th><th>Total</th><th>Updated</th><th>Progress</th></tr></thead>
-              <tbody>
-                {Object.entries(dashData.regionBreakdown).map(([r, {total, updated}]) => (
-                  <tr key={r}>
-                    <td>{r}</td><td>{total}</td><td>{updated}</td>
-                    <td><div className="progress-bar"><div className="progress-fill" style={{width: `${total ? (updated/total)*100 : 0}%`}}></div></div></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
     </section>

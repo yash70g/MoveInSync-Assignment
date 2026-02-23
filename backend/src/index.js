@@ -357,7 +357,6 @@ async function start(){
         
         const updates = await Promise.all(updatePromises);
         
-        // Audit trail
         await models.createAuditEvent({
           entityType: "update_schedule",
           entityId: updates[0].updateId,
@@ -377,7 +376,6 @@ async function start(){
       }
     });
 
-    // Device: Acknowledge update notification
     app.post("/api/updates/:updateId/acknowledge", async(req, res)=> {
       try {
         const { updateId } = req.params;
@@ -427,8 +425,6 @@ async function start(){
         return res.status(500).json({ ok: false, error: "failed" });
       }
     });
-
-    // Device: Report download completed
     app.post("/api/updates/:updateId/download-completed", async(req, res)=> {
       try {
         const { updateId } = req.params;
@@ -449,8 +445,6 @@ async function start(){
         return res.status(500).json({ ok: false, error: "failed" });
       }
     });
-
-    // Device: Report installation started
     app.post("/api/updates/:updateId/install-started", async(req, res)=> {
       try {
         const { updateId } = req.params;
@@ -470,8 +464,6 @@ async function start(){
         return res.status(500).json({ ok: false, error: "failed" });
       }
     });
-
-    // Device: Report installation completed
     app.post("/api/updates/:updateId/install-completed", async(req, res)=> {
       try {
         const { updateId } = req.params;
@@ -485,8 +477,6 @@ async function start(){
         if (!update) {
           return res.status(404).json({ ok: false, error: "update not found" });
         }
-
-        // Update device version
         await models.Device.findOneAndUpdate(
           { deviceId },
           { 
@@ -517,7 +507,6 @@ async function start(){
       }
     });
 
-    // Device: Report update failed
     app.post("/api/updates/:updateId/failed", async(req, res)=> {
       try {
         const { updateId } = req.params;
@@ -552,7 +541,6 @@ async function start(){
       }
     });
 
-    // Get update timeline for a device
     app.get("/api/updates/:updateId/timeline", async(req, res)=> {
       try {
         const { updateId } = req.params;
@@ -584,7 +572,6 @@ async function start(){
       }
     });
 
-    // Get all updates for a device
     app.get("/api/devices/:deviceId/updates", async(req, res)=> {
       try {
         const { deviceId } = req.params;
@@ -636,28 +623,16 @@ async function start(){
           inProgress: updateStates.filter(u => u.status === 'in-progress').length
         };
         
-        // Version heatmap
         const versionHeatmap = {};
         devices.forEach(device => {
           const version = device.currentVersion;
           versionHeatmap[version] = (versionHeatmap[version] || 0) + 1;
-        });
-        
-        // Region-wise breakdown
-        const regionBreakdown = {};
-        devices.forEach(device => {
-          const r = device.region || "Unknown";
-          if (!regionBreakdown[r]) regionBreakdown[r] = { total: 0, updated: 0 };
-          regionBreakdown[r].total += 1;
-          const deviceUpdates = updateStates.filter(u => u.deviceId === device.deviceId && u.status === 'completed');
-          if (deviceUpdates.length > 0) regionBreakdown[r].updated += 1;
         });
 
         return res.json({ 
           ok: true,
           stats,
           versionHeatmap,
-          regionBreakdown,
           filters: { region, platform }
         });
       } catch(err) {

@@ -166,7 +166,7 @@ async function updateStateTransition(updateId, newStage, details = {}) {
     details
   };
   
-  const newStatus = newStage === 'Completed' ? 'completed' : newStage === 'Failed' ? 'failed' : 'in-progress';
+  const newStatus = newStage === 'InstallationCompleted' ? 'completed' : newStage === 'Failed' ? 'failed' : 'in-progress';
   
   return UpdateState.findOneAndUpdate(
     { updateId },
