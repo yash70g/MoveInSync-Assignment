@@ -1,6 +1,7 @@
 import LiveUpdate from '../models/LiveUpdate.js';
 import Device from '../models/Device.js';
 import Version from '../models/Version.js';
+import UpdateHistory from '../models/UpdateHistory.js';
 
 export const createLiveUpdate = async (req, res) => {
   try {
@@ -36,6 +37,23 @@ export const createLiveUpdate = async (req, res) => {
       completedCount: 0,
       targetDevices: deviceIds
     });
+
+    for (const imei of deviceIds) {
+      await UpdateHistory.create({
+        imei,
+        updateId: liveUpdate._id,
+        oldVersion,
+        newVersion,
+        status: 'scheduled',
+        adminId: 'admin',
+        targetCriteria: { region: region || 'all', version: oldVersion },
+        timeline: [{
+          event: 'Update Scheduled',
+          timestamp: new Date(),
+          details: `Admin scheduled update from ${oldVersion} to ${newVersion}`
+        }]
+      });
+    }
 
     res.status(201).json({ success: true, message: 'Live update created successfully', data: liveUpdate });
   } catch (error) {

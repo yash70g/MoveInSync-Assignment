@@ -1,4 +1,5 @@
 import Device from '../models/Device.js';
+import LiveUpdate from '../models/LiveUpdate.js';
 
 export const heartbeat = async (req, res) => {
   try {
@@ -18,12 +19,6 @@ export const heartbeat = async (req, res) => {
       device.currentVersion = currentVersion;
       device.lastHeartbeat = lastHeartbeat || new Date();
       await device.save();
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Heartbeat updated',
-        data: device
-      });
     } else {
       device = await Device.create({
         imei,
@@ -31,15 +26,40 @@ export const heartbeat = async (req, res) => {
         currentVersion,
         lastHeartbeat: lastHeartbeat || new Date()
       });
+    }
 
-      return res.status(201).json({
+    const pendingUpdate = await LiveUpdate.findOne({
+      status: 'active',
+      oldVersion: currentVersion,
+      $or: [
+        { region: region },
+        { region: null }
+      ],
+      targetDevices: imei
+    });
+
+    if (pendingUpdate) {
+      return res.status(200).json({
         success: true,
-        message: 'Device registered successfully',
-        data: device
+        message: device ? 'Heartbeat updated' : 'Device registered successfully',
+        data: device,
+        updateAvailable: true,
+        updateInfo: {
+          updateId: pendingUpdate._id,
+          oldVersion: pendingUpdate.oldVersion,
+          newVersion: pendingUpdate.newVersion,
+          hierarchyOrder: pendingUpdate.hierarchyOrder
+        }
       });
     }
+
+    return res.status(200).json({
+      success: true,
+      message: device ? 'Heartbeat updated' : 'Device registered successfully',
+      data: device,
+      updateAvailable: false
+    });
   } catch (error) {
-    console.error('Heartbeat error:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error',

@@ -13,12 +13,18 @@ function AdminDashboard() {
         <h1>MDM Admin Dashboard</h1>
         <div className="nav-links">
           <Link to="/admin/versions" className={location.pathname === '/admin/versions' ? 'active' : ''}>
-            Version Management:
-          </Link>
+            Version Management
+          </Link>,<br />
           <Link to="/admin/push-update" className={location.pathname === '/admin/push-update' ? 'active' : ''}>
-             Push Updates
-          </Link>
-          <Link to="/" className="client-link">, Back to Client View</Link>
+            Push Updates
+          </Link>,<br />
+          <Link to="/admin/active-updates" className={location.pathname === '/admin/active-updates' ? 'active' : ''}>
+            Active Updates
+          </Link>,<br />
+          <Link to="/admin/analytics" className={location.pathname === '/admin/analytics' ? 'active' : ''}>
+            Analytics
+          </Link>,<br />
+          <Link to="/" className="client-link"> Back to Client View</Link>
         </div>
       </nav>
       <div className="admin-content">

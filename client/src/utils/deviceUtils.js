@@ -27,3 +27,8 @@ export const getDeviceInfo = () => {
     lastHeartbeat: new Date().toISOString()
   };
 };
+
+export const updateDeviceVersion = (newVersion) => {
+  localStorage.setItem('device_version', newVersion);
+  return newVersion;
+};

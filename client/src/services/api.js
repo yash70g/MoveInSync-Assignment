@@ -29,4 +29,14 @@ export const getAllDevices = async () => {
   }
 };
 
+export const rejectUpdate = async (imei, updateId) => {
+  try {
+    const response = await api.post('/devices/reject-update', { imei, updateId });
+    return response.data;
+  } catch (error) {
+    console.error('Reject update error:', error);
+    throw error;
+  }
+};
+
 export default api;

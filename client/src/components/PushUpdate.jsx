@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { getAllVersions } from '../services/adminApi';
 import { getAllDevices } from '../services/api';
 import { createLiveUpdate, getFilteredDevices } from '../services/adminApi';
-import LiveUpdatesList from './LiveUpdatesList';
 
 function PushUpdate() {
   const [versions, setVersions] = useState([]);
@@ -195,9 +194,6 @@ function PushUpdate() {
           {message}
         </div>
       )}
-
-      <hr style={{ margin: '2rem 0' }} />
-      <LiveUpdatesList />
     </div>
   );
 }

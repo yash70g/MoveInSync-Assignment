@@ -39,3 +39,23 @@ export const deleteLiveUpdate = async (updateId) => {
   const response = await api.delete(`/live-updates/${updateId}`);
   return response.data;
 };
+
+export const getAnalytics = async () => {
+  const response = await api.get('/analytics/stats');
+  return response.data;
+};
+
+export const getRegionAdoption = async () => {
+  const response = await api.get('/analytics/region-adoption');
+  return response.data;
+};
+
+export const getDeviceTimeline = async (imei) => {
+  const response = await api.get(`/analytics/device/${imei}`);
+  return response.data;
+};
+
+export const getUpdateHistory = async () => {
+  const response = await api.get('/analytics/history');
+  return response.data;
+};
