@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
+import authRoutes from './routes/authRoutes.js';
 import deviceRoutes from './routes/deviceRoutes.js';
 import versionRoutes from './routes/versionRoutes.js';
 import liveUpdateRoutes from './routes/liveUpdateRoutes.js';
@@ -26,6 +27,7 @@ app.use(express.json());
 
 connectDB();
 
+app.use('/api/auth', authRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/live-updates', liveUpdateRoutes);
 app.use('/api/versions', versionRoutes);
@@ -38,18 +40,13 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
-  socket.on('start-update', async (data) => {
-    const { imei, updateId } = data;
+  socket.on('start-update', async ({ imei, updateId }) => {
     console.log(`Starting update for device ${imei}, update ${updateId}`);
-    
-    const updateData = await import('./controllers/updateController.js').then(mod => 
-      mod.handleUpdateProcess(socket, imei, updateId)
-    );
+    const { handleUpdateProcess } = await import('./controllers/updateController.js');
+    handleUpdateProcess(socket, imei, updateId);
   });
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
+  socket.on('disconnect', () => console.log('Client disconnected:', socket.id));
 });
 
 httpServer.listen(PORT, () => {

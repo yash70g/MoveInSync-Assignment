@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { sendHeartbeat } from './services/api';
 import { getDeviceInfo, updateDeviceVersion } from './utils/deviceUtils';
 import { rejectUpdate } from './services/api';
 import { io } from 'socket.io-client';
+import Login from './components/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './components/AdminDashboard';
 import VersionManagement from './components/VersionManagement';
 import PushUpdate from './components/PushUpdate';
 import LiveUpdatesList from './components/LiveUpdatesList';
+import './App.css';
 import Analytics from './components/Analytics';
 
 function ClientView() {
@@ -21,7 +24,7 @@ function ClientView() {
   const [updateStep, setUpdateStep] = useState('');
 
   useEffect(() => {
-    const sendInitialHeartbeat = async () => {
+    (async () => {
       try {
         setStatus('Sending heartbeat...');
         const info = getDeviceInfo();
@@ -30,7 +33,6 @@ function ClientView() {
         if (response.success) {
           setStatus(response.message);
           setHeartbeatCount(prev => prev + 1);
-          
           if (response.updateAvailable) {
             setUpdateInfo(response.updateInfo);
             setShowUpdatePrompt(true);
@@ -39,8 +41,7 @@ function ClientView() {
       } catch (error) {
         setStatus('Failed to send heartbeat. Is the server running?');
       }
-    };
-    sendInitialHeartbeat();
+    })();
   }, []);
 
   const handleAcceptUpdate = () => {
@@ -88,7 +89,7 @@ function ClientView() {
       setShowUpdatePrompt(false);
       setStatus('Update rejected');
       setUpdateInfo(null);
-    } catch (error) {
+    } catch {
       setStatus('Failed to reject update');
     }
   };
@@ -183,7 +184,12 @@ function ClientView() {
 
         <div className="info-box">
           <p><strong>Note:</strong> Refresh to send another heartbeat.</p>
-          <Link to="/admin/versions" className="admin-link">Go to Admin Dashboard</Link>
+          {localStorage.getItem('user') ? (
+            <>
+              <Link to="/admin/versions" className="admin-link">Go to Admin Dashboard</Link>
+              <button onClick={() => { localStorage.removeItem('user'); window.location.href = '/login'; }} style={{ marginLeft: '10px', padding: '8px 16px', background: '#f44336', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Logout</button>
+            </>
+          ) : <Link to="/login" className="admin-link">Login</Link>}
         </div>
       </div>
     </div>
@@ -194,13 +200,19 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/login" element={<Login />} />
         <Route path="/" element={<ClientView />} />
-        <Route path="/admin" element={<AdminDashboard />}>,
-          <Route path="versions" element={<VersionManagement />} />,
-          <Route path="push-update" element={<PushUpdate />} />,
+        <Route path="/admin" element={
+          <ProtectedRoute requireAdmin={true}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }>
+          <Route path="versions" element={<VersionManagement />} />
+          <Route path="push-update" element={<PushUpdate />} />
           <Route path="active-updates" element={<LiveUpdatesList />} />
           <Route path="analytics" element={<Analytics />} />
         </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
