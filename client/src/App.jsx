@@ -8,6 +8,7 @@ import AdminDashboard from './components/AdminDashboard';
 import VersionManagement from './components/VersionManagement';
 import PushUpdate from './components/PushUpdate';
 import LiveUpdatesList from './components/LiveUpdatesList';
+import './App.css';
 import Analytics from './components/Analytics';
 
 function ClientView() {
