@@ -3,6 +3,7 @@ const AppVersion = require("./appVersion.model");
 const VersionTransition = require("./versionTransition.model");
 const AuditEvent = require("./auditEvent.model");
 const Heartbeat = require("./heartbeat.model");
+const UpdateState = require("./updateState.model");
 const versionUtils = require("../utils/versionUtils");
 
 
@@ -139,12 +140,129 @@ async function getAuditEvents(entityType, entityId, limit = 50) {
   return AuditEvent.find(filter).sort({ occurredAt: -1 }).limit(limit).lean();
 }
 
+// Update State Management
+async function createUpdateState(updateData) {
+  const updateId = `upd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return UpdateState.create({
+    ...updateData,
+    updateId
+  });
+}
+
+async function getUpdateState(updateId) {
+  return UpdateState.findOne({ updateId }).lean();
+}
+
+async function getDeviceUpdates(deviceId) {
+  return UpdateState.find({ deviceId }).sort({ scheduledAt: -1 }).lean();
+}
+
+async function updateStateTransition(updateId, newStage, details = {}) {
+  const update = await UpdateState.findOne({ updateId });
+  if (!update) return null;
+  
+  const timelineEvent = {
+    stage: newStage,
+    timestamp: new Date(),
+    details
+  };
+  
+  const newStatus = newStage === 'Completed' ? 'completed' : newStage === 'Failed' ? 'failed' : 'in-progress';
+  
+  return UpdateState.findOneAndUpdate(
+    { updateId },
+    {
+      $set: { currentStage: newStage, status: newStatus },
+      $push: { timeline: timelineEvent }
+    },
+    { new: true }
+  );
+}
+
+async function recordUpdateFailure(updateId, failureStage, failureReason) {
+  const update = await UpdateState.findOne({ updateId });
+  if (!update) return null;
+  
+  const shouldRetry = update.retryCount < update.maxRetries;
+  
+  const timelineEvent = {
+    stage: 'Failed',
+    timestamp: new Date(),
+    failureStage,
+    failureReason,
+    details: { retriable: shouldRetry }
+  };
+  
+  return UpdateState.findOneAndUpdate(
+    { updateId },
+    {
+      $set: { 
+        currentStage: 'Failed', 
+        status: 'failed',
+        lastRetryAt: new Date()
+      },
+      $push: { timeline: timelineEvent },
+      $inc: { retryCount: 1 }
+    },
+    { new: true }
+  );
+}
+
+async function approveUpdate(updateId, approverAdminId) {
+  return UpdateState.findOneAndUpdate(
+    { updateId },
+    {
+      $set: {
+        approvalStatus: 'approved',
+        approvedBy: approverAdminId,
+        approvedAt: new Date()
+      }
+    },
+    { new: true }
+  );
+}
+
+async function rejectUpdate(updateId, approverAdminId) {
+  return UpdateState.findOneAndUpdate(
+    { updateId },
+    {
+      $set: {
+        approvalStatus: 'rejected',
+        approvedBy: approverAdminId,
+        approvedAt: new Date()
+      }
+    },
+    { new: true }
+  );
+}
+
+async function getRolloutProgress(updateId) {
+  const updates = await UpdateState.find({ updateId }).lean();
+  if (updates.length === 0) return null;
+  
+  const completed = updates.filter(u => u.status === 'completed').length;
+  const failed = updates.filter(u => u.status === 'failed').length;
+  const pending = updates.filter(u => u.status === 'pending').length;
+  const inProgress = updates.filter(u => u.status === 'in-progress').length;
+  
+  return {
+    total: updates.length,
+    completed,
+    failed,
+    pending,
+    inProgress,
+    successRate: updates.length > 0 ? ((completed / updates.length) * 100).toFixed(2) : 0,
+    failureRate: updates.length > 0 ? ((failed / updates.length) * 100).toFixed(2) : 0
+  };
+}
+
 module.exports = {
   Device,
   AppVersion,
   VersionTransition,
   AuditEvent,
   Heartbeat,
+  UpdateState,
   createHeartbeat,
   getDevicesByRegionAndVersion,
   getDeviceCountByRegionAndVersion,
@@ -154,5 +272,13 @@ module.exports = {
   registerDevice,
   getDeviceVersionHistory,
   createAuditEvent,
-  getAuditEvents
+  getAuditEvents,
+  createUpdateState,
+  getUpdateState,
+  getDeviceUpdates,
+  updateStateTransition,
+  recordUpdateFailure,
+  approveUpdate,
+  rejectUpdate,
+  getRolloutProgress
 };

@@ -336,6 +336,396 @@ async function start(){
         return res.status(500).json({ ok: false, error: "create failed" });
       }
     });
+
+    // ============ UPDATE WORKFLOW ENDPOINTS ============
+
+    // Admin: Schedule an update for devices
+    app.post("/api/updates/schedule", async(req, res)=> {
+      try {
+        const { deviceIds, targetVersionCode, targetVersionName, scheduledBy, requiresApproval } = req.body;
+        if (!deviceIds || !Array.isArray(deviceIds) || !targetVersionCode || !targetVersionName) {
+          return res.status(400).json({ ok: false, error: "missing required fields" });
+        }
+
+        const updatePromises = deviceIds.map(deviceId => 
+          models.createUpdateState({
+            deviceId,
+            targetVersionCode,
+            targetVersionName,
+            scheduledAt: new Date(),
+            scheduledBy: scheduledBy || "admin",
+            approvalStatus: requiresApproval ? 'pending' : 'approved'
+          })
+        );
+        
+        const updates = await Promise.all(updatePromises);
+        
+        // Audit trail
+        await models.createAuditEvent({
+          entityType: "update_schedule",
+          entityId: updates[0].updateId,
+          action: "schedule_update",
+          actorId: scheduledBy || "admin",
+          payload: { deviceCount: deviceIds.length, targetVersionName, requiresApproval }
+        });
+
+        return res.status(201).json({ 
+          ok: true, 
+          scheduledCount: updates.length,
+          updates: updates.map(u => ({ updateId: u.updateId, deviceId: u.deviceId }))
+        });
+      } catch(err) {
+        console.error("Update schedule failed:", err.message);
+        return res.status(500).json({ ok: false, error: "schedule failed" });
+      }
+    });
+
+    // Admin: Approve pending update
+    app.post("/api/updates/:updateId/approve", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const { approverAdminId } = req.body;
+        
+        const update = await models.approveUpdate(updateId, approverAdminId || "admin");
+        if (!update) {
+          return res.status(404).json({ ok: false, error: "update not found" });
+        }
+
+        await models.createAuditEvent({
+          entityType: "update",
+          entityId: updateId,
+          action: "approve_update",
+          actorId: approverAdminId || "admin",
+          payload: { deviceId: update.deviceId, targetVersion: update.targetVersionName }
+        });
+
+        return res.json({ ok: true, update });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "approval failed" });
+      }
+    });
+
+    // Admin: Reject pending update
+    app.post("/api/updates/:updateId/reject", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const { approverAdminId } = req.body;
+        
+        const update = await models.rejectUpdate(updateId, approverAdminId || "admin");
+        if (!update) {
+          return res.status(404).json({ ok: false, error: "update not found" });
+        }
+
+        await models.createAuditEvent({
+          entityType: "update",
+          entityId: updateId,
+          action: "reject_update",
+          actorId: approverAdminId || "admin",
+          payload: { deviceId: update.deviceId, targetVersion: update.targetVersionName }
+        });
+
+        return res.json({ ok: true, update });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "rejection failed" });
+      }
+    });
+
+    // Device: Acknowledge update notification
+    app.post("/api/updates/:updateId/acknowledge", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const { deviceId } = req.body;
+        
+        const update = await models.updateStateTransition(updateId, 'DeviceNotified', {
+          deviceId,
+          acknowledgedAt: new Date().toISOString()
+        });
+
+        if (!update) {
+          return res.status(404).json({ ok: false, error: "update not found" });
+        }
+
+        await models.createAuditEvent({
+          entityType: "update",
+          entityId: updateId,
+          action: "device_acknowledged",
+          actorId: deviceId,
+          payload: { acknowledgedAt: new Date().toISOString() }
+        });
+
+        return res.json({ ok: true, message: "Update acknowledged", update });
+      } catch(err) {
+        console.error("Acknowledge failed:", err.message);
+        return res.status(500).json({ ok: false, error: "acknowledge failed" });
+      }
+    });
+
+    // Device: Report download started
+    app.post("/api/updates/:updateId/download-started", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const { deviceId } = req.body;
+        
+        const update = await models.updateStateTransition(updateId, 'DownloadStarted', {
+          deviceId,
+          startedAt: new Date().toISOString()
+        });
+
+        if (!update) {
+          return res.status(404).json({ ok: false, error: "update not found" });
+        }
+
+        return res.json({ ok: true, message: "Download started", update });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "failed" });
+      }
+    });
+
+    // Device: Report download completed
+    app.post("/api/updates/:updateId/download-completed", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const { deviceId, fileSizeBytes } = req.body;
+        
+        const update = await models.updateStateTransition(updateId, 'DownloadCompleted', {
+          deviceId,
+          completedAt: new Date().toISOString(),
+          fileSizeBytes
+        });
+
+        if (!update) {
+          return res.status(404).json({ ok: false, error: "update not found" });
+        }
+
+        return res.json({ ok: true, message: "Download completed", update });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "failed" });
+      }
+    });
+
+    // Device: Report installation started
+    app.post("/api/updates/:updateId/install-started", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const { deviceId } = req.body;
+        
+        const update = await models.updateStateTransition(updateId, 'InstallationStarted', {
+          deviceId,
+          startedAt: new Date().toISOString()
+        });
+
+        if (!update) {
+          return res.status(404).json({ ok: false, error: "update not found" });
+        }
+
+        return res.json({ ok: true, message: "Installation started", update });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "failed" });
+      }
+    });
+
+    // Device: Report installation completed
+    app.post("/api/updates/:updateId/install-completed", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const { deviceId } = req.body;
+        
+        const update = await models.updateStateTransition(updateId, 'InstallationCompleted', {
+          deviceId,
+          completedAt: new Date().toISOString()
+        });
+
+        if (!update) {
+          return res.status(404).json({ ok: false, error: "update not found" });
+        }
+
+        // Update device version
+        await models.Device.findOneAndUpdate(
+          { deviceId },
+          { 
+            currentVersion: update.targetVersionName,
+            versionCode: update.targetVersionCode,
+            $push: { versionHistory: {
+              versionName: update.targetVersionName,
+              versionCode: update.targetVersionCode,
+              updatedAt: new Date(),
+              source: "update_install"
+            }},
+            $set: { pendingUpdate: null }
+          }
+        );
+
+        await models.createAuditEvent({
+          entityType: "update",
+          entityId: updateId,
+          action: "installation_completed",
+          actorId: deviceId,
+          payload: { newVersion: update.targetVersionName }
+        });
+
+        return res.json({ ok: true, message: "Installation completed", update });
+      } catch(err) {
+        console.error("Installation complete failed:", err.message);
+        return res.status(500).json({ ok: false, error: "failed" });
+      }
+    });
+
+    // Device: Report update failed
+    app.post("/api/updates/:updateId/failed", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const { deviceId, failureStage, failureReason } = req.body;
+        
+        if (!failureStage || !failureReason) {
+          return res.status(400).json({ ok: false, error: "failureStage and failureReason required" });
+        }
+
+        const update = await models.recordUpdateFailure(updateId, failureStage, failureReason);
+        if (!update) {
+          return res.status(404).json({ ok: false, error: "update not found" });
+        }
+
+        await models.createAuditEvent({
+          entityType: "update",
+          entityId: updateId,
+          action: "update_failed",
+          actorId: deviceId,
+          payload: { failureStage, failureReason, retryCount: update.retryCount }
+        });
+
+        return res.json({ 
+          ok: true, 
+          message: "Failure recorded", 
+          update,
+          canRetry: update.retryCount < update.maxRetries
+        });
+      } catch(err) {
+        console.error("Failure record failed:", err.message);
+        return res.status(500).json({ ok: false, error: "failed" });
+      }
+    });
+
+    // Get update timeline for a device
+    app.get("/api/updates/:updateId/timeline", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const update = await models.getUpdateState(updateId);
+        
+        if (!update) {
+          return res.status(404).json({ ok: false, error: "update not found" });
+        }
+
+        const timeline = update.timeline.map(event => ({
+          stage: event.stage,
+          timestamp: event.timestamp,
+          failureStage: event.failureStage,
+          failureReason: event.failureReason,
+          details: event.details
+        }));
+
+        return res.json({ 
+          ok: true,
+          updateId,
+          deviceId: update.deviceId,
+          targetVersion: update.targetVersionName,
+          currentStage: update.currentStage,
+          status: update.status,
+          timeline
+        });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "fetch failed" });
+      }
+    });
+
+    // Get all updates for a device
+    app.get("/api/devices/:deviceId/updates", async(req, res)=> {
+      try {
+        const { deviceId } = req.params;
+        const updates = await models.getDeviceUpdates(deviceId);
+        
+        return res.json({ 
+          ok: true,
+          deviceId,
+          count: updates.length,
+          updates
+        });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "fetch failed" });
+      }
+    });
+
+    // Get rollout progress (aggregated)
+    app.get("/api/updates/:updateId/progress", async(req, res)=> {
+      try {
+        const { updateId } = req.params;
+        const progress = await models.getRolloutProgress(updateId);
+        
+        if (!progress) {
+          return res.status(404).json({ ok: false, error: "no updates found" });
+        }
+
+        return res.json({ ok: true, updateId, progress });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "fetch failed" });
+      }
+    });
+
+    // Get real-time monitoring dashboard data
+    app.get("/api/dashboard/updates", async(req, res)=> {
+      try {
+        const { region, platform } = req.query;
+        
+        // Get all devices matching filters
+        const filters = {};
+        if (region) filters.region = region;
+        if (platform) filters.platform = platform;
+        
+        const devices = await models.getAllDevices(filters);
+        const deviceIds = devices.map(d => d.deviceId);
+        
+        // Get all update states for these devices
+        const updateStates = await models.UpdateState.find({ deviceId: { $in: deviceIds } }).lean();
+        
+        // Calculate statistics
+        const stats = {
+          totalDevices: devices.length,
+          updatesScheduled: updateStates.length,
+          completed: updateStates.filter(u => u.status === 'completed').length,
+          failed: updateStates.filter(u => u.status === 'failed').length,
+          pending: updateStates.filter(u => u.status === 'pending').length,
+          inProgress: updateStates.filter(u => u.status === 'in-progress').length
+        };
+        
+        // Version heatmap
+        const versionHeatmap = {};
+        devices.forEach(device => {
+          const version = device.currentVersion;
+          versionHeatmap[version] = (versionHeatmap[version] || 0) + 1;
+        });
+        
+        // Region-wise breakdown
+        const regionBreakdown = {};
+        devices.forEach(device => {
+          const r = device.region || "Unknown";
+          if (!regionBreakdown[r]) regionBreakdown[r] = { total: 0, updated: 0 };
+          regionBreakdown[r].total += 1;
+          const deviceUpdates = updateStates.filter(u => u.deviceId === device.deviceId && u.status === 'completed');
+          if (deviceUpdates.length > 0) regionBreakdown[r].updated += 1;
+        });
+
+        return res.json({ 
+          ok: true,
+          stats,
+          versionHeatmap,
+          regionBreakdown,
+          filters: { region, platform }
+        });
+      } catch(err) {
+        console.error("Dashboard fetch failed:", err.message);
+        return res.status(500).json({ ok: false, error: "fetch failed" });
+      }
+    });
+
     app.listen(port,()=> {
       console.log(`Server listening on ${port}`);
     });
