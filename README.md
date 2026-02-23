@@ -1,37 +1,37 @@
 # MoveInSync Assignment
 
-An application update management system with admin dashboard and client sync.
+Real-time application update management system with admin dashboard and client synchronization.
+
+## System Architecture
+
+<img src="images/seq.png" width="600">
+
+## Tech Stack
+- **Language**: JavaScript
+- **Frontend**: React + Vite
+- **Backend**: Node.js + Express
+- **Database**: MongoDB
 
 ## Features
 
-### Admin Dashboard
-![Login](images/login.png)
-*Secure admin authentication*
+### Authentication
+<img src="images/login.png" width="500">
 
-![Push Updates](images/pushUpdate.png)
-*Push live updates to connected clients*
+### Push Updates
+<img src="images/pushUpdate.png" width="500">
 
-![Version Management](images/version_repo.png)
-*Manage application versions*
+### Version Management
+<img src="images/version_repo.png" width="500">
 
-![Analytics](images/analytics.png)
-*Track update metrics and device statistics*
+### Analytics Dashboard
+<img src="images/analytics.png" width="500">
 
-![Timeline](images/timeline.png)
-*View update history and timeline*
+### Update Timeline
+<img src="images/timeline.png" width="500">
 
 ### Client Interface
-![Client Web](images/clientWeb.png)
-*Web client interface*
+<img src="images/clientWeb.png" width="500">
 
-![Client](images/client.png)
-*Client update management*
+<img src="images/client.png" width="500">
 
-![Client Acceptance](images/clientAcceptane.png)
-*Client-side update acceptance flow*
-
-## Tech Stack
-- **Langauge**: JavaScript
-- **Frontend**: React,Vite
-- **Backend**: Node.js,Express
-- **Database**: MongoDB
+<img src="images/clientAcceptane.png" width="500">
