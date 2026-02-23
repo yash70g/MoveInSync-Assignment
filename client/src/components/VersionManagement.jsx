@@ -60,7 +60,7 @@ function VersionManagement() {
   return (
     <div className="version-management">
       <h2>Version Management</h2>
-      <p className="description">Register versions with hierarchy (0→1→2→3). Updates must pass through intermediate versions.</p>
+      <p className="description">Register versions with hierarchy (0,1,2,3). Updates must pass through intermediate versions.</p>
       
       <div className="register-form">
         <h3>Register New Version</h3>
