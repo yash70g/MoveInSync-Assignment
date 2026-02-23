@@ -267,6 +267,75 @@ async function start(){
         return res.status(500).json({ ok: false, error: "fetch failed" });
       }
     });
+    app.get("/api/devices/needs-update", async(req, res)=> {
+      try {
+        const { appId, platform } = req.query;
+        if (!appId || !platform) {
+          return res.status(400).json({ ok: false, error: "id/platform required" });
+        }
+        const latestVersion = await versionResolver.getLatestVersion(appId, platform);
+        if (!latestVersion) {
+          return res.json({ ok: true, devices: [], latestVersion: null });
+        }
+
+        const devices = await models.getAllDevices({ platform });
+        const devicesNeedingUpdate = devices.filter(device => {
+          const deviceVersionCode = device.versionCode || versionToCode(device.currentVersion);
+          return deviceVersionCode < latestVersion.versionCode;
+        });
+
+        return res.json({
+          ok: true,
+          latestVersion: latestVersion.versionName,
+          latestVersionCode: latestVersion.versionCode,
+          totalDevices: devices.length,
+          devicesNeedingUpdate: devicesNeedingUpdate.length,
+          devices: devicesNeedingUpdate
+        });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "fetch failed" });
+      }
+    });
+    app.post("/api/versions/create", async(req, res)=> {
+      try {
+        const { appId, platform, versionCode, versionName } = req.body;
+        if (!appId || !platform || versionCode === undefined || !versionName) {
+          return res.status(400).json({ ok: false, error: "missing params" });
+        }
+        const version = await models.AppVersion.create({
+          appId,
+          platform,
+          versionCode,
+          versionName,
+          isActive: true
+        });
+
+        return res.status(201).json({ ok: true, version });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "create failed" });
+      }
+    });
+    app.post("/api/versions/transition", async(req, res)=> {
+      try {
+        const { appId, platform, fromVersionCode, toVersionCode, isAllowed, intermediateVersionCode } = req.body;
+        if (!appId || !platform || fromVersionCode === undefined || toVersionCode === undefined) {
+          return res.status(400).json({ ok: false, error: "missing params" });
+        }
+
+        const transition = await models.VersionTransition.create({
+          appId,
+          platform,
+          fromVersionCode,
+          toVersionCode,
+          isAllowed: isAllowed !== false,
+          intermediateVersionCode: intermediateVersionCode || null,
+          isActive: true
+        });
+        return res.status(201).json({ ok: true, transition });
+      } catch(err) {
+        return res.status(500).json({ ok: false, error: "create failed" });
+      }
+    });
     app.listen(port,()=> {
       console.log(`Server listening on ${port}`);
     });
