@@ -58,14 +58,14 @@ function DashboardMonitor() {
           <div className="stats-grid">
             <div className="stat-card"><strong>Total Devices:</strong> {dashData.stats.totalDevices}</div>
             <div className="stat-card"><strong>Updates Scheduled:</strong> {dashData.stats.updatesScheduled}</div>
-            <div className="stat-card success"><strong>✓ Completed:</strong> {dashData.stats.completed}</div>
-            <div className="stat-card error"><strong>✗ Failed:</strong> {dashData.stats.failed}</div>
-            <div className="stat-card warning"><strong>⏳ In Progress:</strong> {dashData.stats.inProgress}</div>
-            <div className="stat-card"><strong>⏸ Pending:</strong> {dashData.stats.pending}</div>
+            <div className="stat-card success"><strong>Completed:</strong> {dashData.stats.completed}</div>
+            <div className="stat-card error"><strong>Failed:</strong> {dashData.stats.failed}</div>
+            <div className="stat-card warning"><strong>In Progress:</strong> {dashData.stats.inProgress}</div>
+            <div className="stat-card"><strong>Pending:</strong> {dashData.stats.pending}</div>
           </div>
 
           <div className="heatmap-section">
-            <h3>📈 Version Heatmap</h3>
+            <h3>Version Heatmap</h3>
             <table>
               <thead><tr><th>Version</th><th>Device Count</th></tr></thead>
               <tbody>
@@ -77,7 +77,7 @@ function DashboardMonitor() {
           </div>
 
           <div className="region-section">
-            <h3>🌍 Region-wise Adoption</h3>
+            <h3>Region-wise Adoption</h3>
             <table>
               <thead><tr><th>Region</th><th>Total</th><th>Updated</th><th>Progress</th></tr></thead>
               <tbody>
