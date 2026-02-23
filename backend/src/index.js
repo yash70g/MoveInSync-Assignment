@@ -344,6 +344,13 @@ async function start(){
           return res.status(400).json({ ok: false, error: "missing required fields" });
         }
 
+        // Downgrade prevention: check if any device would be downgraded
+        const devicesData = await Promise.all(deviceIds.map(id => models.Device.findOne({ deviceId: id })));
+        const downgradeAttempt = devicesData.some(device => device && device.versionCode >= targetVersionCode);
+        if (downgradeAttempt) {
+          return res.status(400).json({ ok: false, error: "downgrade not allowed - target version must be higher than current" });
+        }
+
         const updatePromises = deviceIds.map(deviceId => 
           models.createUpdateState({
             deviceId,
