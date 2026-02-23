@@ -10,12 +10,15 @@ export const heartbeat = async (req, res) => {
         message: 'IMEI, region, and currentVersion are required' 
       });
     }
+    
     let device = await Device.findOne({ imei });
+    
     if (device) {
       device.region = region;
       device.currentVersion = currentVersion;
       device.lastHeartbeat = lastHeartbeat || new Date();
       await device.save();
+      
       return res.status(200).json({
         success: true,
         message: 'Heartbeat updated',

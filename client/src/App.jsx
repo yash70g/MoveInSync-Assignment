@@ -26,6 +26,7 @@ function App() {
     };
     sendInitialHeartbeat();
   }, []); 
+  
   return (
     <div className="app">
       <div className="container">
@@ -62,6 +63,10 @@ function App() {
               </div>
             </div>
           )}
+        </div>
+        
+        <div className="info-box">
+          <p><strong>Note:</strong> A heartbeat is automatically sent when the app mounts. Refresh the page to send another heartbeat.</p>
         </div>
       </div>
     </div>

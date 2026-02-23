@@ -14,8 +14,6 @@ export const getRegion = () => {
 export const getAppVersion = () => {
   const stored = localStorage.getItem('device_version');
   if (stored) return stored;
-  
-  // Store default version if not present
   const defaultVersion = '1.0.0';
   localStorage.setItem('device_version', defaultVersion);
   return defaultVersion;
