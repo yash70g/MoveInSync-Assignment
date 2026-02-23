@@ -4,6 +4,7 @@ import { sendHeartbeat } from './services/api';
 import { getDeviceInfo } from './utils/deviceUtils';
 import AdminDashboard from './components/AdminDashboard';
 import VersionManagement from './components/VersionManagement';
+import PushUpdate from './components/PushUpdate';
 
 function ClientView() {
   const [status, setStatus] = useState('Initializing...');
@@ -82,6 +83,7 @@ function App() {
         <Route path="/" element={<ClientView />} />
         <Route path="/admin" element={<AdminDashboard />}>
           <Route path="versions" element={<VersionManagement />} />
+          <Route path="push-update" element={<PushUpdate />} />
         </Route>
       </Routes>
     </Router>

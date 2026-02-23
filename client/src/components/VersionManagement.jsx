@@ -152,16 +152,6 @@ function VersionManagement() {
           </table>
         )}
       </div>
-
-      <div className="hierarchy-info">
-        <h3>Update Hierarchy Rules</h3>
-        <ul>
-          <li>Updates must follow sequential order: 0, 1, 2, 3</li>
-          <li>Direct updates to latest version are NOT allowed</li>
-          <li>Device must pass through all intermediate versions</li>
-          <li>Example: To update from v1 to v3, device updates: v1 - v2 - v3</li>
-        </ul>
-      </div>
     </div>
   );
 }

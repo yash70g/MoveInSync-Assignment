@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import deviceRoutes from './routes/deviceRoutes.js';
 import versionRoutes from './routes/versionRoutes.js';
+import liveUpdateRoutes from './routes/liveUpdateRoutes.js';
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 connectDB();
 
 app.use('/api/devices', deviceRoutes);
+app.use('/api/live-updates', liveUpdateRoutes);
 app.use('/api/versions', versionRoutes);
 
 app.get('/', (req, res) => {
