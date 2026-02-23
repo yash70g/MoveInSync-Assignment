@@ -67,8 +67,6 @@ async function start(){
           status: "active",
           region: region || "Bangalore"
         });
-        
-        // Record heartbeat event
         await models.createHeartbeat({ event, deviceId, ts: new Date(ts), version });
       } catch(err){
         console.error("heartbeat store failed:", err.message);
